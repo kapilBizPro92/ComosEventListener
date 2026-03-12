@@ -29,10 +29,32 @@ namespace ComosEventListener
     public class ComosEventSink : IComosDEventSink
     {
         private readonly EventLogger _logger;
+        private readonly EventFilterRepository _filter;
 
-        public ComosEventSink(EventLogger logger)
+        /// <summary>
+        /// Creates a new ComosEventSink.
+        /// </summary>
+        /// <param name="logger">Logger to write event JSON files.</param>
+        /// <param name="filter">
+        /// Optional filter repository. When provided, only events whose names
+        /// appear in the comosad.EventFilter table (with IsActive = 1) are
+        /// captured. Pass null to capture all events.
+        /// </param>
+        public ComosEventSink(EventLogger logger, EventFilterRepository filter = null)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _filter = filter;
+        }
+
+        /// <summary>
+        /// Returns true if the event should be processed based on the DB filter.
+        /// If no filter is configured, all events are allowed.
+        /// </summary>
+        private bool ShouldProcess(string eventType)
+        {
+            if (_filter == null)
+                return true;
+            return _filter.IsEventAllowed(eventType);
         }
 
         // =====================================================================
@@ -40,6 +62,7 @@ namespace ComosEventListener
         // =====================================================================
         public void OnBeforeObjectWrite(object comosObject)
         {
+            if (!ShouldProcess("BeforeObjectWrite")) return;
             try
             {
                 var data = ExtractObjectInfo(comosObject, "BeforeObjectWrite");
@@ -59,6 +82,7 @@ namespace ComosEventListener
         // =====================================================================
         public void OnAfterObjectWrite(object comosObject)
         {
+            if (!ShouldProcess("AfterObjectWrite")) return;
             try
             {
                 var data = ExtractObjectInfo(comosObject, "AfterObjectWrite");
@@ -78,6 +102,7 @@ namespace ComosEventListener
         // =====================================================================
         public void OnBeforeObjectDelete(object comosObject)
         {
+            if (!ShouldProcess("BeforeObjectDelete")) return;
             try
             {
                 var data = ExtractObjectInfo(comosObject, "BeforeObjectDelete");
@@ -97,6 +122,7 @@ namespace ComosEventListener
         // =====================================================================
         public void OnAfterObjectDelete(object comosObject)
         {
+            if (!ShouldProcess("AfterObjectDelete")) return;
             try
             {
                 var data = ExtractObjectInfo(comosObject, "AfterObjectDelete");
@@ -117,6 +143,7 @@ namespace ComosEventListener
         // =====================================================================
         public void OnBeforeAttributeChange(object specification, object oldValue, object newValue)
         {
+            if (!ShouldProcess("BeforeAttributeChange")) return;
             try
             {
                 var data = new JObject
@@ -150,6 +177,7 @@ namespace ComosEventListener
         // =====================================================================
         public void OnAfterAttributeChange(object specification)
         {
+            if (!ShouldProcess("AfterAttributeChange")) return;
             try
             {
                 var data = new JObject
@@ -174,6 +202,7 @@ namespace ComosEventListener
         // =====================================================================
         public void OnBeforeObjectCreate(object comosObject)
         {
+            if (!ShouldProcess("BeforeObjectCreate")) return;
             try
             {
                 var data = ExtractObjectInfo(comosObject, "BeforeObjectCreate");
@@ -193,6 +222,7 @@ namespace ComosEventListener
         // =====================================================================
         public void OnAfterObjectCreate(object comosObject)
         {
+            if (!ShouldProcess("AfterObjectCreate")) return;
             try
             {
                 var data = ExtractObjectInfo(comosObject, "AfterObjectCreate");

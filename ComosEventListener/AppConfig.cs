@@ -55,6 +55,19 @@ namespace ComosEventListener
         public string ComosProgId { get; set; } = "";
 
         /// <summary>
+        /// SQL Server connection string for the database containing the
+        /// comosad.EventFilter table. Leave empty to disable DB-based filtering
+        /// (all events will be captured).
+        /// </summary>
+        public string EventFilterConnectionString { get; set; } = "";
+
+        /// <summary>
+        /// How often (in seconds) the event filter list is refreshed from the DB.
+        /// Defaults to 60 seconds. Set to 0 to only load once at startup.
+        /// </summary>
+        public int EventFilterRefreshIntervalSeconds { get; set; } = 60;
+
+        /// <summary>
         /// Loads configuration from appsettings.json if it exists next to the executable.
         /// </summary>
         public static AppConfig Load()
@@ -100,7 +113,9 @@ namespace ComosEventListener
                 ["ConsoleLogging"] = true,
                 ["WriteSummaryLog"] = true,
                 ["MaxEventFiles"] = 0,
-                ["ComosProgId"] = ""
+                ["ComosProgId"] = "",
+                ["EventFilterConnectionString"] = "Server=YOUR_SERVER;Database=YOUR_DB;Integrated Security=True;",
+                ["EventFilterRefreshIntervalSeconds"] = 60
             };
 
             File.WriteAllText(outputPath, sample.ToString(Formatting.Indented));

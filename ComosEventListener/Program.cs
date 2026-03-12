@@ -52,11 +52,35 @@ namespace ComosEventListener
 
             try
             {
+                // Load configuration
+                var config = AppConfig.Load();
+
                 // Initialize the event logger
                 logger = new EventLogger(outputFolder);
 
-                // Create the event sink
-                var eventSink = new ComosEventSink(logger);
+                // Set up event filter from comosad.EventFilter DB table
+                EventFilterRepository eventFilter = null;
+                if (!string.IsNullOrWhiteSpace(config.EventFilterConnectionString))
+                {
+                    Console.WriteLine("[EventFilter] Connecting to database to load event filters...");
+                    eventFilter = new EventFilterRepository(
+                        config.EventFilterConnectionString,
+                        config.EventFilterRefreshIntervalSeconds);
+                    eventFilter.Refresh();
+
+                    var allowed = eventFilter.GetAllowedEvents();
+                    if (allowed.Count > 0)
+                    {
+                        Console.WriteLine($"[EventFilter] Only capturing: {string.Join(", ", allowed)}");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("[EventFilter] No connection string configured. Capturing ALL events.");
+                }
+
+                // Create the event sink with the optional filter
+                var eventSink = new ComosEventSink(logger, eventFilter);
 
                 // Connect to COMOS and register the event sink
                 connectionManager = new ComosConnectionManager();
@@ -108,6 +132,16 @@ namespace ComosEventListener
                 Console.WriteLine("  - AfterAttributeChange  (attribute change, POST-DB)");
                 Console.WriteLine("  - BeforeObjectCreate   (object creation, PRE-DB)");
                 Console.WriteLine("  - AfterObjectCreate    (object creation, POST-DB)");
+                Console.WriteLine();
+                if (eventFilter != null)
+                {
+                    Console.WriteLine("Event filtering: ACTIVE (from comosad.EventFilter table)");
+                    Console.WriteLine($"  Refresh interval: {config.EventFilterRefreshIntervalSeconds}s");
+                }
+                else
+                {
+                    Console.WriteLine("Event filtering: DISABLED (capturing all events)");
+                }
                 Console.WriteLine();
                 Console.WriteLine("Press 'Q' to quit, 'S' for status, 'O' to open output folder.");
                 Console.WriteLine();
