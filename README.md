@@ -39,6 +39,7 @@ ComosEventListener/
     ├── ComosEventSink.cs           # Event sink implementation (captures all events)
     ├── ComosConnectionManager.cs   # COM connection + event registration logic
     ├── EventLogger.cs              # Thread-safe JSON file logger
+    ├── EventFilterRepository.cs    # DB-based event filtering (comosad.EventFilter)
     └── AppConfig.cs                # Configuration loader
 ```
 
@@ -100,7 +101,9 @@ Copy `appsettings.json` next to the built `.exe`:
   "ConsoleLogging": true,
   "WriteSummaryLog": true,
   "MaxEventFiles": 0,
-  "ComosProgId": ""
+  "ComosProgId": "",
+  "EventFilterConnectionString": "Server=YOUR_SERVER;Database=YOUR_DB;Integrated Security=True;",
+  "EventFilterRefreshIntervalSeconds": 60
 }
 ```
 
@@ -185,6 +188,48 @@ The `_event_summary_*.log` file contains one line per event for quick scanning:
 2026-03-12 14:30:22.456 | BeforeAttributeChange        | Spec: Temperature on @50|M001|EA001 | '120' -> '150'
 2026-03-12 14:30:25.789 | BeforeObjectWrite             | Object: @50|M001|EA001
 ```
+
+## Event Filtering (comosad.EventFilter)
+
+You can filter which events are captured by populating the `comosad.EventFilter` database table.
+
+### Table Schema
+
+```sql
+CREATE TABLE [comosad].[EventFilter] (
+    [Id]        INT IDENTITY(1,1) PRIMARY KEY,
+    [EventName] NVARCHAR(255) NOT NULL,
+    [IsActive]  BIT NOT NULL DEFAULT 1
+);
+```
+
+### Example: Only capture pre-DB attribute and object write events
+
+```sql
+INSERT INTO comosad.EventFilter (EventName, IsActive) VALUES ('BeforeAttributeChange', 1);
+INSERT INTO comosad.EventFilter (EventName, IsActive) VALUES ('BeforeObjectWrite', 1);
+```
+
+### Behavior
+
+- **No connection string configured** (`EventFilterConnectionString` is empty): ALL events are captured (same as before).
+- **Connection string configured, table is empty**: ALL events are captured (fail-open).
+- **Connection string configured, table has rows**: Only events with `IsActive = 1` whose `EventName` matches the event type are captured.
+- **Database unreachable**: Falls back to capturing ALL events (fail-open).
+- The filter list is **automatically refreshed** from the DB at the interval set by `EventFilterRefreshIntervalSeconds` (default: 60 seconds). Set to `0` to only load once at startup.
+
+### Valid EventName Values
+
+| EventName | Description |
+|-----------|-------------|
+| `BeforeObjectWrite` | Object update, pre-DB |
+| `AfterObjectWrite` | Object update, post-DB |
+| `BeforeObjectDelete` | Object deletion, pre-DB |
+| `AfterObjectDelete` | Object deletion, post-DB |
+| `BeforeAttributeChange` | Attribute change, pre-DB |
+| `AfterAttributeChange` | Attribute change, post-DB |
+| `BeforeObjectCreate` | Object creation, pre-DB |
+| `AfterObjectCreate` | Object creation, post-DB |
 
 ## How It Works
 
