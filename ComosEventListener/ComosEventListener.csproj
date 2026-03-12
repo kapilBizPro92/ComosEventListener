@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>ComosEventListener</RootNamespace>
+    <AssemblyName>ComosEventListener</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.InteropServices" />
+    <!--
+      COMOS COM Type Library References:
+      After installing COMOS 10.5.2, add COM references to:
+        - Comos.Kernel (ComosKernel.dll / MotComosKernel_TLB)
+        - Comos.Global (ComosGlobal.dll / MotComosGlobal_TLB)
+      
+      You can add these via Visual Studio:
+        Project -> Add Reference -> COM -> Type Libraries -> search "COMOS"
+      
+      Or generate interop assemblies manually:
+        tlbimp "C:\Program Files (x86)\Siemens\COMOS\Bin\ComosKernel.dll" /out:Interop.ComosKernel.dll
+        tlbimp "C:\Program Files (x86)\Siemens\COMOS\Bin\ComosGlobal.dll" /out:Interop.ComosGlobal.dll
+    -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+</Project>
